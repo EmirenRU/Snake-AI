@@ -1,9 +1,13 @@
 package ru.emiren.snakeai.ai;
 
+import ru.emiren.snakeai.engine.Game;
+
 import java.awt.desktop.AppHiddenEvent;
-import java.io.File;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 public class AI {
     private int inputSize;
@@ -17,18 +21,33 @@ public class AI {
 
     private double LEARNING_RATE = 0.5;
 
-    // private final File weightsFile = new File("...");
-    // private final File GameLogs = new File("...");
+     private final String weightsFilePath = "Data/weights.txt";
+     private final String gameLogsPath = "Data/gameLogs.txt";
+     private File weightsFile = new File(weightsFilePath);
+     private File gameLogs = new File(gameLogsPath);
+
+     private static Random random = new Random();
 
     public AI(int inputSize, int hiddenSize, int outputSize){
         this.inputSize = inputSize;
         this.hiddenSize = hiddenSize;
         this.outputSize = outputSize;
 
-        for (int i = 0; i < inputSize; i++)
-            input = new ArrayList<>(hiddenSize);
-        for (int i = 0; i < hiddenSize; i++)
-            weights = new ArrayList<>(outputSize);
+        input = new ArrayList<>();
+        for (int i = 0; i < inputSize; i++) {
+            ArrayList<Double> row = new ArrayList<>(hiddenSize);
+            for (int j = 0; j < hiddenSize; j++)
+                row.add(0.0);
+            input.add(row);
+        }
+
+        weights = new ArrayList<>();
+        for (int i = 0; i < hiddenSize + 1; i++) {
+            ArrayList<Double> row = new ArrayList<>();
+            for (int j = 0; j < outputSize + 1; j++)
+                row.add(0.0);
+            weights.add(row);
+        }
 
         loadWeights();
     }
@@ -44,6 +63,7 @@ public class AI {
                 max = output.get(i);
                 action = i;
             }
+
         return action;
     }
 
@@ -52,10 +72,13 @@ public class AI {
         ArrayList<Double> output = forward(state);
         ArrayList<Double> nextOutput = forward(nextState);
 
-        ArrayList<Double> targetOutput = (ArrayList<Double>) output.clone();
+        ArrayList<Double> targetOutput = new ArrayList<>(output);
         targetOutput.set(action, reward + getMaxQ(nextOutput));
 
-        ArrayList<Double> houtput = new ArrayList<>(hiddenSize);
+        ArrayList<Double> houtput = new ArrayList<>();
+        for (int i = 0; i < hiddenSize; i++)
+            houtput.add(0.0);
+
         for (int i = 0; i < hiddenSize; i++){
             double sum = 0;
             for (int j = 0; j < inputSize; j++)
@@ -68,34 +91,58 @@ public class AI {
                 weights.get(i).set(j, weights.get(i).get(j) + LEARNING_RATE * houtput.get(i) * (targetOutput.get(j) - output.get(j)));
 
         for (int i = 0; i < inputSize; i++)
-            for (int j = 0; j < hiddenSize; j++){
+            for (int j = 0; j < hiddenSize; j++) {
                 double sum = 0;
                 for (int k = 0; k < outputSize; k++)
                     sum += (targetOutput.get(k) - output.get(k)) * weights.get(j).get(k);
 
-                weights.get(i).set(j, weights.get(i).get(j) + LEARNING_RATE * state.get(i) * houtput.get(j) * (1 - houtput.get(j)) * sum);
+                double currentWeight = input.get(i).get(j);
+                double updatedWeight = currentWeight + LEARNING_RATE * state.get(i) * houtput.get(j) * (1 - houtput.get(j)) * sum;
+                input.get(i).set(j, updatedWeight);
+
             }
     }
 
-    public ArrayList<Double> forward(ArrayList<Double> input) {
-        ArrayList<Double> houtput = new ArrayList<>(hiddenSize);
+    public ArrayList<Double> forward(ArrayList<Double> argInput) {
+
+        ArrayList<Double> hiddenOutput = new ArrayList<>(hiddenSize);
+
+        System.out.println();
+
+        System.out.println(inputSize + " " + hiddenSize + " " + outputSize);
+
+        for (int i = 0; i < hiddenSize; i++)
+            hiddenOutput.add(i, 0.0);
+
+        for (int i = 0; i < hiddenSize; i++)
+            System.out.println(hiddenOutput.get(i));
 
         for (int i = 0; i < hiddenSize; i++){
             double sum = 0;
             for (int j = 0; j < inputSize; j++)
-                sum += input.get(j) * this.input.get(j).get(i);
-            houtput.set(i, sigmoid(sum));
+                sum += argInput.get(j)
+                        * input.get(j).get(i);
+            hiddenOutput.set(i, sigmoid(sum));
         }
 
-        ArrayList<Double> output = new ArrayList<>(outputSize);
+
+
+        ArrayList<Double> output = new ArrayList<>();
+        for (int i = 0; i < outputSize; i++)
+            output.add(0.0);
+
         for (int i = 0; i < outputSize; i++){
             double sum = 0;
             for (int j = 0 ; j < hiddenSize; j++)
-                sum += houtput.get(j) * weights.get(j).get(i);
+                sum += hiddenOutput.get(j) * weights.get(j).get(i);
             output.set(i, sum);
         }
 
-        return output;
+        System.out.println("\n");
+        for (Double arg : output)
+            System.out.println(arg);
+
+        return hiddenOutput;
     }
 
     private double sigmoid(double x) { return 1 / 1 + Math.exp(-x); }
@@ -112,9 +159,6 @@ public class AI {
         return max;
     }
 
-    private void initializeWeights(ArrayList<ArrayList<Double>> weights) { }
-    private void loadWeights() { }
-
     private void setWeights(ArrayList<ArrayList<Double>> weights) {
         inputSize =  weights.get(0).get(0).intValue();
         hiddenSize = weights.get(0).get(1).intValue();
@@ -124,34 +168,117 @@ public class AI {
         weights = new ArrayList<>();
         for (int i = 0; i < inputSize; i++) {
             input.add(new ArrayList<>(hiddenSize));
-            input.set(i, (ArrayList<Double>) weights.get(i + 1).clone());
+            input.get(i).addAll(weights.get(i + 1));
 
         }
         for (int i = 0; i < hiddenSize; i++) {
             weights.add(new ArrayList<>(outputSize));
-            this.weights.set(i, (ArrayList<Double>) weights.get(inputSize + i + 1).clone());
+            this.weights.get(i).addAll( weights.get(inputSize + i + 1));
         }
     }
 
     public ArrayList<ArrayList<Double>> getWeights() {
-        ArrayList<ArrayList<Double>> weights = new ArrayList<ArrayList<Double>>(inputSize + hiddenSize + 2);
+        ArrayList<ArrayList<Double>> weight = new ArrayList<ArrayList<Double>>();
 
-        ArrayList<Double> weight = new ArrayList<>(new ArrayList<Double>(Arrays.<Double>asList((double) inputSize, (double) hiddenSize, (double) outputSize)));
-        weights.set(0, weight);
+        for (int i = 0; i < inputSize + hiddenSize + 2; i++)  {
+            weight.add(new ArrayList<>());
+        }
+
+        weight.get(0).add((double) inputSize);
+        weight.get(0).add((double) hiddenSize);
+        weight.get(0).add((double) outputSize);
 
         for (int i = 0; i < inputSize; i++)
-            weights.set(i + 1, (ArrayList<Double>) input.get(i).clone());
+            weight.get(i + 1).addAll (input.get(i));
 
         for (int i = 0; i < hiddenSize; i++)
-            weights.set(inputSize + i + 1, (ArrayList<Double>) this.weights.get(i).clone());
+            weight.get(inputSize + i + 1).addAll(weights.get(i));
 
-        System.out.println("Probability of error");
-        return weights;
+        return weight;
 
     }
 
+    private void initializeWeights(ArrayList<ArrayList<Double>> weight) {
+        for (int i = 0; i < weight.size(); i++)
+            for (int j = 0; j < weight.get(i).size(); j++)
+                weight.get(i).set(j, random.nextDouble() * 2 - 1);
+    }
 
-    public void saveScore(long time, int applesEaten) { }
+    private void loadWeights() {
+        ArrayList<ArrayList<Double>> weightsFromFile = new ArrayList<>();
 
-    private void createTrainingFile(boolean fileType) { }
+        System.out.println(weightsFile.length());
+        if (weightsFile.exists() && weightsFile.length() > 0) {
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(weightsFilePath));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] weightStrings = line.trim().split(" ");
+                    ArrayList<Double> row = new ArrayList<>();
+                    for (String weightString : weightStrings) {
+                        row.add(Double.parseDouble(weightString));
+                    }
+                    weightsFromFile.add(row);
+                }
+                setWeights(weightsFromFile);
+                reader.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            createTrainingFile(true);
+            initializeWeights(input);
+            initializeWeights(weights);
+            saveWeights();
+        }
+
+
+    }
+
+    public void saveWeights() {
+        try {
+            FileWriter writer = new FileWriter(weightsFile);
+            ArrayList<ArrayList<Double>> weightsToFile = getWeights();
+            for (ArrayList<Double> row : weights) {
+                for (Double weight : row)
+                    writer.write(weight.toString() + " ");
+                writer.write("\n");
+            }
+            writer.close();
+        } catch (IOException e) {
+            saveWeights();
+            e.printStackTrace();
+        }
+    }
+//        try {
+//            ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(weightsFile));
+//            out.writeObject(getWeights());
+//            out.close();
+//        } catch (IOException e) {
+//            saveWeights();
+//        }
+
+
+    public void saveScore(long time, int applesEaten) {
+        try (FileWriter writer = new FileWriter(gameLogs, true)) {
+            writer.append("Time played: ").append(String.valueOf((System.currentTimeMillis() - time) / Game.DELAY)).append(" | Apples eaten: ").append(String.valueOf(applesEaten)).append(" | Score: ").append(String.valueOf(score)).append("\n");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            createTrainingFile(true);
+        }
+    }
+
+    private void createTrainingFile(boolean fileType){
+        // True for weights file, false for game logs.
+        File file = (fileType) ? weightsFile : gameLogs;
+        try {
+            file.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

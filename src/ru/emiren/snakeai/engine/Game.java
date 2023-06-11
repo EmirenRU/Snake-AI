@@ -24,8 +24,8 @@ public class Game extends JPanel implements ActionListener {
 
     public static final int DELAY = 10;
 
-    private final ArrayList<Integer> x = new ArrayList<Integer>(ROW_DOTS);
-    private final ArrayList<Integer> y = new ArrayList<Integer>(COL_DOTS);
+    private ArrayList<Integer> x;
+    private ArrayList<Integer> y;
 
     private boolean inGame = true;
 
@@ -37,7 +37,7 @@ public class Game extends JPanel implements ActionListener {
        2 - up
        3 - down
      */
-    private ArrayList<Boolean> dir = new ArrayList<>(4);
+    private ArrayList<Boolean> dir = new ArrayList<>(Arrays.asList(true, false, false, false));
 
     // Java Library
     private static Random random = new Random();
@@ -53,6 +53,14 @@ public class Game extends JPanel implements ActionListener {
     public Game(){ initGame(); }
 
     private void initGame() {
+        x = new ArrayList<Integer>();
+        y = new ArrayList<Integer>();
+
+        for (int i = 0; i < ROW_DOTS; i++)
+            x.add(0);
+
+        for (int i = 0; i < COL_DOTS; i++)
+            y.add(0);
 
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.BLACK);
@@ -75,9 +83,15 @@ public class Game extends JPanel implements ActionListener {
     private void initGameParams() {
         SNAKE_SIZE = 3;
 
+        int x0 = new Random().nextInt(WIDTH);
+        int y0 = new Random().nextInt(HEIGHT);
+
+        x.set(0, x0);
+        y.set(0, y0);
+
         for (int i = 0; i < SNAKE_SIZE; i++) {
-            x.add(300 - i * DOT_SIZE);
-            y.add(300);
+            x.set(i, x0 - i * DOT_SIZE);
+            y.set(i, y0);
         }
     }
 
@@ -98,14 +112,18 @@ public class Game extends JPanel implements ActionListener {
     }
 
     private void move() {
-        ArrayList<Double> currentState = getInput();
+        ArrayList<Double> currentState = new ArrayList<>(getInput());
 
         int dx = apple.getPos().getX() - x.get(0);
         int dy = apple.getPos().getY() - y.get(0);
 
         double foodDistance = Math.sqrt(dx * dx + dy * dy);
 
-        int action = ai.getAction(currentState);
+        double[] array = new double[currentState.size()];
+        for (int i = 0; i < currentState.size(); i++)
+            array[i] = currentState.get(i);
+
+        int action = ai.getAction(array);
 
         if (action == 0)
             moveLeft();
@@ -127,6 +145,7 @@ public class Game extends JPanel implements ActionListener {
 
     private void giveReward(ArrayList<Double> currentState, int action, double foodDistances) {
 
+
         if ((apple.getPos().getX() + DOT_SIZE > x.get(0))
                 && (x.get(0) >= apple.getPos().getX())
                 && (apple.getPos().getY() + DOT_SIZE > y.get(0))
@@ -136,14 +155,13 @@ public class Game extends JPanel implements ActionListener {
             applesEaten++;
 
             double reward = calculateReward(foodDistances, true, action);
-            ai.train(currentState, action,getInput(), reward);
+            ai.train(currentState, action, getInput(), reward);
             apple = generateApple();
         } else
             ai.train(currentState,action,getInput(),calculateReward(foodDistances, false, action));
 
         if (!inGame)
             ai.train(currentState, action, getInput(), -10.0);
-
     }
 
     private double calculateReward(double foodDistances, boolean ateApple, int action) {
@@ -159,7 +177,6 @@ public class Game extends JPanel implements ActionListener {
                 inGame = false;
                 System.out.println("Close to the wall. Restarting");
             }
-
             return -10.0;
         }
 
@@ -222,13 +239,6 @@ public class Game extends JPanel implements ActionListener {
         dir.set(3, false);
     }
 
-    private void moveDown() {
-        dir.set(0, false);
-        dir.set(1, false);
-        dir.set(2, false);
-        dir.set(3, true);
-    }
-
     private void moveRight() {
         dir.set(0, false);
         dir.set(1, true);
@@ -242,24 +252,27 @@ public class Game extends JPanel implements ActionListener {
         dir.set(3, false);
     }
 
-    private void followHead() {
+    private void moveDown() {
+        dir.set(0, false);
+        dir.set(1, false);
+        dir.set(2, false);
+        dir.set(3, true);
+    }
+
+    private void moveSnake() {
+        x.set(0, (dir.get(0)) ? x.get(0) - DOT_SIZE : x.get(0));
+        x.set(0, (dir.get(1)) ? x.get(0) + DOT_SIZE : x.get(0));
+        y.set(0, (dir.get(2)) ? y.get(0) - DOT_SIZE : y.get(0));
+        y.set(0, (dir.get(3)) ? y.get(0) + DOT_SIZE : y.get(0));
+
         for (int i = SNAKE_SIZE; i > 0; i--){
             x.set(i, x.get(i - 1));
             y.set(i, y.get(i - 1));
         }
     }
 
-    private void moveSnake() {
-        followHead();
-        x.set(0, (dir.get(0)) ? x.get(0) - DOT_SIZE : x.get(0));
-        x.set(0, (dir.get(1)) ? x.get(0) + DOT_SIZE : x.get(0));
-        y.set(0, (dir.get(2)) ? y.get(0) - DOT_SIZE : y.get(0));
-        y.set(0, (dir.get(3)) ? y.get(0) + DOT_SIZE : y.get(0));
-    }
-
     private ArrayList<Double> getInput() {
-        ArrayList<Double> input = new ArrayList<>(12);
-
+        ArrayList<Double> input = new ArrayList<>();
         /*
         0 - Snake x
         1 - Snake y
@@ -275,30 +288,34 @@ public class Game extends JPanel implements ActionListener {
         11 - Snake dots amount
          */
 
-        input.set(0, Double.valueOf(x.get(0)));
-        input.set(1, Double.valueOf(y.get(0)));
+        input.add( Double.valueOf(x.get(0)));
+        input.add( Double.valueOf(y.get(0)));
 
-        input.set(2, (double) apple.getPos().getX());
-        input.set(3, (double) apple.getPos().getY());
+        input.add( (double) apple.getPos().getX());
+        input.add( (double) apple.getPos().getY());
         if (dir.get(0))
-            input.set(4, 1.0);
+            input.add( 1.0);
         else if (dir.get(1))
-            input.set(4, -1.0);
+            input.add( -1.0);
         if (dir.get(2))
-            input.set(5, 1.0);
+            input.add( 1.0);
         else if (dir.get(3))
-            input.set(5, -1.0);
+            input.add( -1.0);
 
-        input.set(6, Double.valueOf(x.get(0)));
-        input.set(7, (double) (WIDTH - x.get(0)));
-        input.set(8, Double.valueOf(y.get(0)));
-        input.set(9, (double) (HEIGHT - y.get(0)));
+        input.add( Double.valueOf(x.get(0)));
+        input.add( (double) (WIDTH - x.get(0)));
+        input.add( Double.valueOf(y.get(0)));
+        input.add( (double) (HEIGHT - y.get(0)));
 
         int dx = apple.getPos().getX() - x.get(0);
         int dy = apple.getPos().getY() - y.get(0);
 
-        input.set(10, (double) (dx * dx + dy * dy));
-        input.set(11, (double) SNAKE_SIZE);
+        input.add( (double) (dx * dx + dy * dy));
+        input.add( (double) SNAKE_SIZE);
+
+        for (int i = 0; i < input.size(); i++)
+            System.out.println(i + " " + input.get(i));
+
 
         return input;
     }
@@ -315,10 +332,12 @@ public class Game extends JPanel implements ActionListener {
         if (inGame) {
             apple.draw(g);
 
-            g.setColor(Color.GREEN);
-            g.fillRect(x.get(0), y.get(0), DOT_SIZE, DOT_SIZE);
-            g.setColor(Color.WHITE);
-            for (int i = 1; i < SNAKE_SIZE; i++){
+            for (int i = 0; i < SNAKE_SIZE; i++){
+                if ( i == 0 )
+                    g.setColor(Color.GREEN);
+                else
+                    g.setColor(Color.WHITE);
+
                 g.fillRect(x.get(i), y.get(i), DOT_SIZE, DOT_SIZE);
             }
         }
@@ -329,10 +348,18 @@ public class Game extends JPanel implements ActionListener {
         if (inGame)
             move();
         else{
+            ai.saveWeights();
+            ai.saveScore(gameTime, applesEaten);
             timer.stop();
             if (applesEaten > 9){
                 System.out.println("Stopped training, Ai ate 10 apples in one turn.");
-            } else {
+            } else{
+                restart();
+            }
+
+            long currentGameTime = System.currentTimeMillis();
+            if (currentGameTime - gameTime > 5){
+                gameTime = currentGameTime;
                 restart();
             }
         }
