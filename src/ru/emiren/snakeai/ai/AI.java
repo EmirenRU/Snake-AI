@@ -55,6 +55,7 @@ public class AI {
     public int getAction(ArrayList<Double> state) {
         ArrayList<Double> output = forward(state);
 
+
         int action = 0;
         double max = output.get(0);
 
@@ -75,7 +76,7 @@ public class AI {
         ArrayList<Double> targetOutput = new ArrayList<>(output);
         targetOutput.set(action, reward + getMaxQ(nextOutput));
 
-        ArrayList<Double> houtput = new ArrayList<>();
+        ArrayList<Double> houtput = new ArrayList<>(hiddenSize);
         for (int i = 0; i < hiddenSize; i++)
             houtput.add(0.0);
 
@@ -99,7 +100,6 @@ public class AI {
                 double currentWeight = input.get(i).get(j);
                 double updatedWeight = currentWeight + LEARNING_RATE * state.get(i) * houtput.get(j) * (1 - houtput.get(j)) * sum;
                 input.get(i).set(j, updatedWeight);
-
             }
     }
 
@@ -107,42 +107,54 @@ public class AI {
 
         ArrayList<Double> hiddenOutput = new ArrayList<>(hiddenSize);
 
-        System.out.println();
+        System.out.println("Forward 1");
 
         System.out.println(inputSize + " " + hiddenSize + " " + outputSize);
 
-        for (int i = 0; i < hiddenSize; i++)
-            hiddenOutput.add(i, 0.0);
+        for (int i = 0; i < hiddenSize; i++) {
+            hiddenOutput.add(0.0);
+        }
 
-        for (int i = 0; i < hiddenSize; i++)
-            System.out.println(hiddenOutput.get(i));
 
-        for (int i = 0; i < hiddenSize; i++){
+
+        for (int i = 0; i < hiddenSize; i++) {
             double sum = 0;
-            for (int j = 0; j < inputSize; j++)
-                sum += argInput.get(j)
-                        * input.get(j).get(i);
+            for (int j = 0; j < inputSize; j++) {
+                sum += argInput.get(j) * input.get(j).get(i);
+            }
             hiddenOutput.set(i, sigmoid(sum));
         }
 
+        for (int i = 0; i < hiddenSize; i++) {
+            System.out.println(hiddenOutput.get(i));
+        }
 
-
-        ArrayList<Double> output = new ArrayList<>();
-        for (int i = 0; i < outputSize; i++)
+        System.out.println("Forward 2");
+        ArrayList<Double> output = new ArrayList<>(outputSize);
+        for (int i = 0; i < outputSize; i++) {
             output.add(0.0);
+        }
+        System.out.println();
+        for (int i = 0; i < outputSize; i++) {
+            System.out.println(output.get(i));
+        }
 
-        for (int i = 0; i < outputSize; i++){
+        System.out.println("Forward 3");
+        for (int i = 0; i < outputSize; i++) {
             double sum = 0;
-            for (int j = 0 ; j < hiddenSize; j++)
+            for (int j = 0; j < hiddenSize; j++) {
                 sum += hiddenOutput.get(j) * weights.get(j).get(i);
+            }
             output.set(i, sum);
         }
 
+        System.out.println("Forward end");
         System.out.println("\n");
-        for (Double arg : output)
+        for (Double arg : output) {
             System.out.println(arg);
+        }
 
-        return hiddenOutput;
+        return output;
     }
 
     private double sigmoid(double x) { return 1 / 1 + Math.exp(-x); }

@@ -119,11 +119,7 @@ public class Game extends JPanel implements ActionListener {
 
         double foodDistance = Math.sqrt(dx * dx + dy * dy);
 
-        double[] array = new double[currentState.size()];
-        for (int i = 0; i < currentState.size(); i++)
-            array[i] = currentState.get(i);
-
-        int action = ai.getAction(array);
+        int action = ai.getAction(currentState);
 
         if (action == 0)
             moveLeft();
@@ -272,7 +268,13 @@ public class Game extends JPanel implements ActionListener {
     }
 
     private ArrayList<Double> getInput() {
-        ArrayList<Double> input = new ArrayList<>();
+        ArrayList<Double> input = new ArrayList<>(12);
+
+        System.out.println("GetInputStart");
+
+        System.out.println("Adding");
+        for (int i = 0; i < 12; i++)
+            input.add(0.0);
         /*
         0 - Snake x
         1 - Snake y
@@ -288,30 +290,30 @@ public class Game extends JPanel implements ActionListener {
         11 - Snake dots amount
          */
 
-        input.add( Double.valueOf(x.get(0)));
-        input.add( Double.valueOf(y.get(0)));
+        input.set(0, Double.valueOf(x.get(0)));
+        input.set(1, Double.valueOf(y.get(0)));
 
-        input.add( (double) apple.getPos().getX());
-        input.add( (double) apple.getPos().getY());
+        input.set(2, (double) apple.getPos().getX());
+        input.set(3,  (double) apple.getPos().getY());
         if (dir.get(0))
-            input.add( 1.0);
+            input.set(4, 1.0);
         else if (dir.get(1))
-            input.add( -1.0);
+            input.set(4, -1.0);
         if (dir.get(2))
-            input.add( 1.0);
+            input.set(5, 1.0);
         else if (dir.get(3))
-            input.add( -1.0);
+            input.set(5, -1.0);
 
-        input.add( Double.valueOf(x.get(0)));
-        input.add( (double) (WIDTH - x.get(0)));
-        input.add( Double.valueOf(y.get(0)));
-        input.add( (double) (HEIGHT - y.get(0)));
+        input.set(6, Double.valueOf(x.get(0)));
+        input.set(7, (double) (WIDTH - x.get(0)));
+        input.set(8, Double.valueOf(y.get(0)));
+        input.set(9, (double) (HEIGHT - y.get(0)));
 
         int dx = apple.getPos().getX() - x.get(0);
         int dy = apple.getPos().getY() - y.get(0);
 
-        input.add( (double) (dx * dx + dy * dy));
-        input.add( (double) SNAKE_SIZE);
+        input.set(10, (double) (dx * dx + dy * dy));
+        input.set(11, (double) SNAKE_SIZE);
 
         for (int i = 0; i < input.size(); i++)
             System.out.println(i + " " + input.get(i));
