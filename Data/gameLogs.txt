@@ -1,1 +1,12 @@
 Time played: 91 | Apples eaten: 0 | Score: -29.75
+Time played: 31 | Apples eaten: 0 | Score: -30.119999999999997
+Time played: 80 | Apples eaten: 0 | Score: -30.47
+Time played: 27 | Apples eaten: 0 | Score: -30.119999999999997
+Time played: 7463 | Apples eaten: 0 | Score: -979.7500000000003
+Time played: 2137 | Apples eaten: 0 | Score: -390.27000000000004
+Time played: 6562 | Apples eaten: 0 | Score: -1209.560000000001
+Time played: 6251 | Apples eaten: 0 | Score: -899.7200000000001
+Time played: 2349 | Apples eaten: 2 | Score: -316.32000000000147
+Time played: 364 | Apples eaten: 0 | Score: -112.27000000000032
+Time played: 504 | Apples eaten: 1 | Score: -92.37999999999954
+Time played: 293 | Apples eaten: 1 | Score: -58.23000000000021

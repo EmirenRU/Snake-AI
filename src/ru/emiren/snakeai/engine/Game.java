@@ -16,13 +16,11 @@ public class Game extends JPanel implements ActionListener {
     // Settings
     private final int WIDTH  = 720;
     private final int HEIGHT = 720;
-
     public static final int DOT_SIZE = 10;
     private final int ROW_DOTS = WIDTH / DOT_SIZE;
     private final int COL_DOTS = HEIGHT / DOT_SIZE;
     private final int ALL_DOTS = (WIDTH * HEIGHT) / (DOT_SIZE * DOT_SIZE);
-
-    public static final int DELAY = 10;
+    public static final int DELAY = 33;
 
     private ArrayList<Integer> x;
     private ArrayList<Integer> y;
@@ -31,30 +29,26 @@ public class Game extends JPanel implements ActionListener {
 
     private int SNAKE_SIZE = 3;
 
-    /*
-       0 - left
-       1 - right
-       2 - up
-       3 - down
-     */
-    private ArrayList<Boolean> dir = new ArrayList<>(Arrays.asList(true, false, false, false));
+    private ArrayList<Boolean> dir;
 
-    // Java Library
-    private static Random random = new Random();
+
+    private Random random;
 
     private Timer timer;
     private Apple apple;
-
     private AI ai;
-    private static long gameTime;
-    private static int applesEaten;
-    private static int recentWallAttempts = 0;
+
+    private long gameTime;
+    private int applesEaten;
+    private int recentWallAttempts;
 
     public Game(){ initGame(); }
 
     private void initGame() {
         x = new ArrayList<Integer>();
         y = new ArrayList<Integer>();
+
+        random = new Random();
 
         for (int i = 0; i < ROW_DOTS; i++)
             x.add(0);
@@ -86,13 +80,16 @@ public class Game extends JPanel implements ActionListener {
         int x0 = new Random().nextInt(WIDTH);
         int y0 = new Random().nextInt(HEIGHT);
 
-        x.set(0, x0);
-        y.set(0, y0);
+        x.set(0, 300);
+        y.set(0, 300);
 
         for (int i = 0; i < SNAKE_SIZE; i++) {
             x.set(i, x0 - i * DOT_SIZE);
             y.set(i, y0);
         }
+
+        dir = new ArrayList<>(Arrays.asList(true, false, false, false));
+        recentWallAttempts = 0;
     }
 
     private Apple generateApple() {
@@ -112,7 +109,7 @@ public class Game extends JPanel implements ActionListener {
     }
 
     private void move() {
-        ArrayList<Double> currentState = new ArrayList<>(getInput());
+        ArrayList<Double> currentState = getInput();
 
         int dx = apple.getPos().getX() - x.get(0);
         int dy = apple.getPos().getY() - y.get(0);
@@ -120,6 +117,8 @@ public class Game extends JPanel implements ActionListener {
         double foodDistance = Math.sqrt(dx * dx + dy * dy);
 
         int action = ai.getAction(currentState);
+
+        System.out.println("Action = " + action);
 
         if (action == 0)
             moveLeft();
@@ -169,10 +168,6 @@ public class Game extends JPanel implements ActionListener {
 
         if (distToWall <= DOT_SIZE) {
             recentWallAttempts++;
-            if (recentWallAttempts > 5) {
-                inGame = false;
-                System.out.println("Close to the wall. Restarting");
-            }
             return -10.0;
         }
 
@@ -204,7 +199,7 @@ public class Game extends JPanel implements ActionListener {
                 else
                     return -0.5;
              }
-            if (apple.getPos().getY() < y.get(0)){
+            else if (apple.getPos().getY() < y.get(0)){
                 if (action == 2)
                     return 0.5;
                 else
@@ -223,10 +218,8 @@ public class Game extends JPanel implements ActionListener {
         }
 
         System.out.println("Moving the opposite side of the Apple");
-        return -0.01;
+        return -0.1;
     }
-
-
 
     private void moveLeft() {
         dir.set(0, true);
@@ -290,11 +283,12 @@ public class Game extends JPanel implements ActionListener {
         11 - Snake dots amount
          */
 
-        input.set(0, Double.valueOf(x.get(0)));
-        input.set(1, Double.valueOf(y.get(0)));
+        input.set(0, (double) (x.get(0)));
+        input.set(1, (double) (y.get(0)));
 
         input.set(2, (double) apple.getPos().getX());
-        input.set(3,  (double) apple.getPos().getY());
+        input.set(3, (double) apple.getPos().getY());
+
         if (dir.get(0))
             input.set(4, 1.0);
         else if (dir.get(1))
@@ -304,20 +298,19 @@ public class Game extends JPanel implements ActionListener {
         else if (dir.get(3))
             input.set(5, -1.0);
 
-        input.set(6, Double.valueOf(x.get(0)));
+        input.set(6, (double) (x.get(0)));
         input.set(7, (double) (WIDTH - x.get(0)));
-        input.set(8, Double.valueOf(y.get(0)));
+        input.set(8, (double) (y.get(0)));
         input.set(9, (double) (HEIGHT - y.get(0)));
 
         int dx = apple.getPos().getX() - x.get(0);
         int dy = apple.getPos().getY() - y.get(0);
 
-        input.set(10, (double) (dx * dx + dy * dy));
+        input.set(10, Math.sqrt((dx * dx + dy * dy)));
         input.set(11, (double) SNAKE_SIZE);
 
-        for (int i = 0; i < input.size(); i++)
-            System.out.println(i + " " + input.get(i));
-
+        for (Double arg : input)
+            System.out.println(arg);
 
         return input;
     }
@@ -342,6 +335,8 @@ public class Game extends JPanel implements ActionListener {
 
                 g.fillRect(x.get(i), y.get(i), DOT_SIZE, DOT_SIZE);
             }
+
+            Toolkit.getDefaultToolkit().sync();
         }
     }
 
@@ -364,6 +359,8 @@ public class Game extends JPanel implements ActionListener {
                 gameTime = currentGameTime;
                 restart();
             }
+            else
+                restart();
         }
         repaint();
     }
@@ -413,12 +410,12 @@ public class Game extends JPanel implements ActionListener {
         this.ai = ai;
     }
 
-    public static long getGameTime() {
+    public long getGameTime() {
         return gameTime;
     }
 
-    public static void setGameTime(long gameTime) {
-        Game.gameTime = gameTime;
+    public void setGameTime(long gameTime) {
+        gameTime = gameTime;
     }
 
     public Apple getApple() {
@@ -429,19 +426,19 @@ public class Game extends JPanel implements ActionListener {
         this.apple = apple;
     }
 
-    public static int getApplesEaten() {
+    public int getApplesEaten() {
         return applesEaten;
     }
 
-    public static void setApplesEaten(int applesEaten) {
-        Game.applesEaten = applesEaten;
+    public void setApplesEaten(int applesEaten) {
+        applesEaten = applesEaten;
     }
 
-    public static int getRecentWallAttempts() {
+    public int getRecentWallAttempts() {
         return recentWallAttempts;
     }
 
-    public static void setRecentWallAttempts(int recentWallAttempts) {
-        Game.recentWallAttempts = recentWallAttempts;
+    public void setRecentWallAttempts(int recentWallAttempts) {
+        recentWallAttempts = recentWallAttempts;
     }
 }
